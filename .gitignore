@@ -1,0 +1,30 @@
+# 迺ｰ蠅・､画焚繝輔ぃ繧､繝ｫ 
+.env 
+ 
+# Python髢｢騾｣ 
+__pycache__/ 
+*.py[cod] 
+*$py.class 
+*.so 
+.Python 
+venv/ 
+ENV/ 
+env/ 
+ 
+# 隱崎ｨｼ諠・ｱ 
+config/credentials/*.json 
+ 
+# 繝・・繧ｿ繝輔ぃ繧､繝ｫ 
+data/input/* 
+data/output/* 
+!data/input/.gitkeep 
+!data/output/.gitkeep 
+ 
+# 繝ｭ繧ｰ繝輔ぃ繧､繝ｫ 
+logs/*.log 
+ 
+# IDE髢｢騾｣ 
+.vscode/ 
+.idea/ 
+*.swp 
+*.swo 
