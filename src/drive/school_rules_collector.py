@@ -189,6 +189,7 @@ class SchoolRulesCollector:
                 schools_data[school_key] = {
                     "ward": pdf.ward,
                     "school": pdf.school,
+                    "school_folder_url": pdf.school_folder_url,
                     "pdfs": []
                 }
             

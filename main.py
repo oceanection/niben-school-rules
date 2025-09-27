@@ -271,11 +271,9 @@ class SchoolRulesAnalyzer:
             file_name = metadata.get('file_name', '')
             
             self.logger.info(f"結果保存開始: {ward}/{school}/{file_name}")
+         
             
-            # メタデータを除いた分析結果のみを保存
-            clean_result = {k: v for k, v in analysis_result.items() if not k.startswith('_')}
-            
-            success = write_data(self.worksheet, clean_result)
+            success = write_data(self.worksheet, analysis_result)
             
             if success:
                 self.logger.info(f"結果保存成功: {file_name}")
@@ -314,7 +312,7 @@ class SchoolRulesAnalyzer:
         
         self.logger.info(f"学校処理開始: {ward}/{school} ({len(pdfs)}ファイル)")
         
-        school_context = {'ward': ward, 'school': school}
+        school_context = {'ward': ward, 'school': school, 'school_folder_url': school_data.get('school_folder_url', '')}
         
         for pdf_info in pdfs:
             try:
