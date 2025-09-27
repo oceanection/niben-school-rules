@@ -227,36 +227,6 @@ class GeminiClient:
             self.logger.warning(f"使用量メタデータ抽出に失敗: {str(e)}")
         
         return None
-    
-    def test_connection(self) -> bool:
-        """
-        Gemini API 接続テスト
-        
-        Returns:
-            接続成功可否
-        """
-        try:
-            # 簡単なテストリクエストを送信
-            test_request = GeminiRequest(
-                prompt="これはテストです。'OK'とだけ返答してください。",
-                temperature=0.0,
-                max_output_tokens=10
-            )
-            
-            response = self.model.generate_content(
-                test_request.prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=test_request.temperature,
-                    max_output_tokens=test_request.max_output_tokens
-                )
-            )
-            
-            self.logger.info("Gemini API 接続テスト成功")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Gemini API 接続テスト失敗: {str(e)}")
-            return False
 
 
 def create_gemini_client() -> GeminiClient:
