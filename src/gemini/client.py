@@ -1,234 +1,213 @@
 """
-Gemini API クライアント
-
-Google Gemini APIとの通信を管理
+PDF学校規則分析専用 Gemini API クライアント
 """
 
-import time
 import logging
-from typing import Optional, Dict, Any, Union
-from dataclasses import dataclass
-
+import yaml
+from pathlib import Path
+from typing import Dict, Any
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from google.api_core import exceptions as google_exceptions
 
-from config.settings import settings
-
-
-@dataclass
-class GeminiRequest:
-    """Gemini API リクエストデータ"""
-    prompt: str
-    file_content: Optional[bytes] = None
-    file_name: Optional[str] = None
-    temperature: Optional[float] = None  # Noneの場合は設定値を使用
-    max_output_tokens: Optional[int] = None  # Noneの場合は設定値を使用
-
-
-@dataclass
-class GeminiResponse:
-    """Gemini API レスポンスデータ"""
-    content: str
-    finish_reason: str
-    usage_metadata: Optional[Dict[str, Any]] = None
-    safety_ratings: Optional[Dict[str, Any]] = None
-    request_time: Optional[float] = None
-
 
 class GeminiClient:
-    """Google Gemini API クライアント"""
+    """
+    PDF学校規則分析専用のGemini APIクライアント
+    責任範囲：PDFアップロード、プロンプト管理、API呼び出し
+    """
     
-    def __init__(self):
-        self.model = None
-        self.logger = logging.getLogger(__name__)
-        self._configure()
-    
-    def _configure(self):
-        """Gemini API の設定"""
-        try:
-            if not settings.gemini_api_key:
-                raise ValueError("Gemini API キーが設定されていません")
-            
-            # API キーを設定
-            genai.configure(api_key=settings.gemini_api_key)
-            
-            # モデルを初期化（デフォルト設定）
-            self.model = genai.GenerativeModel(
-                model_name=settings.gemini_model,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=settings.gemini_temperature,
-                    top_p=settings.gemini_top_p,
-                    top_k=settings.gemini_top_k,
-                    max_output_tokens=settings.gemini_max_output_tokens
-                ),
-                safety_settings={
-                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                }
-            )
-            
-            self.logger.info("Gemini API クライアントを初期化しました")
-            
-        except Exception as e:
-            self.logger.error(f"Gemini API 初期化に失敗: {str(e)}")
-            raise ConnectionError(f"Gemini API 初期化に失敗: {str(e)}")
-    
-    def analyze_pdf_content(self, request: GeminiRequest) -> GeminiResponse:
+    def __init__(self, api_key: str, model_name: str = "gemini-1.5-pro"):
         """
-        PDF内容を分析
+        クライアントを初期化
         
         Args:
-            request: Gemini リクエストデータ
+            api_key: Gemini APIキー
+            model_name: 使用するモデル名
+        """
+        self.logger = logging.getLogger(__name__)
+        self.api_key = api_key
+        self.model_name = model_name
+        
+        # Gemini APIを設定
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel(
+            model_name=model_name,
+            safety_settings={
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+        )
+        
+        # プロンプトテンプレートを読み込み
+        self._load_prompts()
+        
+        self.logger.info(f"Gemini クライアント初期化完了 (モデル: {model_name})")
+    
+    def analyze_pdf(self, pdf_content: bytes, file_name: str) -> str:
+        """
+        PDF学校規則文書を分析してJSON形式の結果を取得
+        
+        Args:
+            pdf_content: PDFファイルの内容（バイト形式）
+            file_name: PDFファイル名
             
         Returns:
-            Gemini レスポンスデータ
+            str: Gemini APIからの生レスポンステキスト（JSON形式を期待）
+            
+        Raises:
+            ConnectionError: API接続エラー
+            ValueError: PDFアップロードエラー
         """
-        start_time = time.time()
-        
         try:
-            self.logger.info(f"PDF分析開始: {request.file_name}")
+            self.logger.info(f"PDF分析開始: {file_name}")
             
-            # PDFファイルをアップロード
-            if request.file_content and request.file_name:
-                uploaded_file = self._upload_file(request.file_content, request.file_name)
-                
-                # プロンプトとファイルを含むコンテンツを作成
-                content = [
-                    request.prompt,
-                    uploaded_file
-                ]
-            else:
-                # テキストのみの場合
-                content = request.prompt
+            # 1. PDFをGemini APIにアップロード
+            uploaded_file = self._upload_pdf(pdf_content, file_name)
             
-            # 動的な設定でAPIリクエストを送信
-            response = self.model.generate_content(
-                content,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=request.temperature if request.temperature is not None else settings.gemini_temperature,
-                    max_output_tokens=request.max_output_tokens if request.max_output_tokens is not None else settings.gemini_max_output_tokens,
-                    top_p=settings.gemini_top_p,
-                    top_k=settings.gemini_top_k
-                )
-            )
+            # 2. プロンプトを構築
+            prompts = self._build_prompts(file_name)
             
-            # レスポンスの確認
+            # 3. Gemini APIで分析実行
+            response = self.model.generate_content([
+                prompts['system'],
+                prompts['user'], 
+                uploaded_file
+            ])
+            
+            # 4. レスポンスチェック
             if not response.text:
-                raise ValueError("Gemini から空のレスポンスが返されました")
+                raise ValueError("空のレスポンスが返されました")
             
-            # PDFファイルを削除（リソース管理）
-            if request.file_content and request.file_name:
-                self._cleanup_uploaded_file(uploaded_file)
-            
-            elapsed_time = time.time() - start_time
-            
-            self.logger.info(f"PDF分析完了: {request.file_name} ({elapsed_time:.2f}秒)")
-            
-            return GeminiResponse(
-                content=response.text,
-                finish_reason=response.candidates[0].finish_reason.name if response.candidates else "UNKNOWN",
-                usage_metadata=self._extract_usage_metadata(response),
-                safety_ratings=None,
-                request_time=elapsed_time
-            )
+            self.logger.info(f"PDF分析完了: {file_name}")
+            return response.text
             
         except google_exceptions.ResourceExhausted as e:
-            self.logger.error(f"Gemini API クォータ制限: {str(e)}")
-            raise ConnectionError(f"Gemini API クォータ制限に達しました: {str(e)}")
+            error_msg = f"Gemini API クォータ制限: {str(e)}"
+            self.logger.error(f"クォータエラー: {file_name} - {error_msg}")
+            raise ConnectionError(error_msg)
             
-        except google_exceptions.InvalidArgument as e:
-            self.logger.error(f"Gemini API 引数エラー: {str(e)}")
-            raise ValueError(f"Gemini API への引数が不正です: {str(e)}")
+        except google_exceptions.GoogleAPICallError as e:
+            error_msg = f"Gemini API エラー: {str(e)}"
+            self.logger.error(f"APIエラー: {file_name} - {error_msg}")
+            raise ConnectionError(error_msg)
             
         except Exception as e:
-            elapsed_time = time.time() - start_time
-            self.logger.error(f"PDF分析エラー: {request.file_name} ({elapsed_time:.2f}秒) - {str(e)}")
-            raise ConnectionError(f"Gemini API エラー: {str(e)}")
+            error_msg = f"PDF分析エラー: {str(e)}"
+            self.logger.error(f"分析エラー: {file_name} - {error_msg}")
+            raise ValueError(error_msg)
     
-    def _upload_file(self, file_content: bytes, file_name: str) -> Any:
+    def _upload_pdf(self, pdf_content: bytes, file_name: str) -> object:
         """
-        ファイルを Gemini にアップロード
+        PDFをGemini APIにアップロード
         
         Args:
-            file_content: ファイル内容
-            file_name: ファイル名
+            pdf_content: PDFファイルの内容
+            file_name: ファイル名（ログ用）
             
         Returns:
             アップロードされたファイルオブジェクト
         """
         try:
-            # 一時的にファイルを保存してアップロード
-            import tempfile
-            import os
+            self.logger.debug(f"PDFアップロード開始: {file_name}")
             
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
-                temp_file.write(file_content)
-                temp_file_path = temp_file.name
+            uploaded_file = genai.upload_file(
+                data=pdf_content,
+                mime_type="application/pdf",
+                display_name=file_name
+            )
             
-            try:
-                uploaded_file = genai.upload_file(
-                    path=temp_file_path,
-                    display_name=file_name
-                )
-                
-                # ファイルの処理完了を待機
-                while uploaded_file.state.name == "PROCESSING":
-                    time.sleep(1)
-                    uploaded_file = genai.get_file(uploaded_file.name)
-                
-                if uploaded_file.state.name == "FAILED":
-                    raise ValueError(f"ファイルアップロードに失敗: {file_name}")
-                
-                return uploaded_file
-                
-            finally:
-                # 一時ファイルを削除
-                os.unlink(temp_file_path)
-                
+            self.logger.debug(f"PDFアップロード完了: {file_name}")
+            return uploaded_file
+            
         except Exception as e:
-            self.logger.error(f"ファイルアップロードエラー: {file_name} - {str(e)}")
-            raise ConnectionError(f"ファイルアップロードに失敗: {str(e)}")
+            error_msg = f"PDFアップロードエラー: {str(e)}"
+            self.logger.error(f"アップロードエラー: {file_name} - {error_msg}")
+            raise ValueError(error_msg)
     
-    def _cleanup_uploaded_file(self, uploaded_file: Any):
+    def _load_prompts(self):
         """
-        アップロードされたファイルを削除
-        
-        Args:
-            uploaded_file: アップロードされたファイルオブジェクト
+        prompts_templates.yamlからプロンプトテンプレートを読み込み
         """
         try:
-            genai.delete_file(uploaded_file.name)
-            self.logger.debug(f"アップロードファイルを削除: {uploaded_file.display_name}")
+            prompt_file = Path(__file__).parent / "prompts_templates.yaml"
+            
+            if not prompt_file.exists():
+                raise FileNotFoundError(f"プロンプトファイルが見つかりません: {prompt_file}")
+            
+            with open(prompt_file, 'r', encoding='utf-8') as f:
+                self.prompt_templates = yaml.safe_load(f)
+            
+            self.logger.debug("プロンプトテンプレート読み込み完了")
+            
         except Exception as e:
-            self.logger.warning(f"アップロードファイル削除に失敗: {str(e)}")
+            self.logger.error(f"プロンプト読み込みエラー: {e}")
+            raise
     
-    def _extract_usage_metadata(self, response: Any) -> Optional[Dict[str, Any]]:
+    def _build_prompts(self, file_name: str) -> Dict[str, str]:
         """
-        使用量メタデータを抽出
+        PDF分析用のプロンプトを構築
         
         Args:
-            response: Gemini レスポンス
+            file_name: PDFファイル名
             
         Returns:
-            使用量メタデータ
+            Dict[str, str]: システムプロンプトとユーザープロンプト
         """
         try:
-            if hasattr(response, 'usage_metadata'):
-                usage = response.usage_metadata
-                return {
-                    "prompt_token_count": getattr(usage, 'prompt_token_count', 0),
-                    "candidates_token_count": getattr(usage, 'candidates_token_count', 0),
-                    "total_token_count": getattr(usage, 'total_token_count', 0)
-                }
+            system_prompt = self.prompt_templates['system_prompts']['school_rules_analysis']
+            
+            user_prompt_template = self.prompt_templates['user_prompts']['analyze_pdf']
+            user_prompt = user_prompt_template.format(
+                file_name=file_name
+            )
+            
+            return {
+                'system': system_prompt,
+                'user': user_prompt
+            }
+            
+        except KeyError as e:
+            error_msg = f"プロンプトテンプレートキーが見つかりません: {e}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
         except Exception as e:
-            self.logger.warning(f"使用量メタデータ抽出に失敗: {str(e)}")
+            error_msg = f"プロンプト構築エラー: {str(e)}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+    
+    def test_connection(self) -> bool:
+        """
+        Gemini API接続テスト
         
-        return None
-
-
-def create_gemini_client() -> GeminiClient:
-    """Gemini クライアントインスタンスを作成"""
-    return GeminiClient()
+        Returns:
+            bool: 接続成功時True
+        """
+        try:
+            response = self.model.generate_content("テスト")
+            return bool(response.text)
+        except Exception as e:
+            self.logger.error(f"接続テスト失敗: {str(e)}")
+            return False
+    
+    def get_model_info(self) -> Dict[str, Any]:
+        """
+        使用中のモデル情報を取得
+        
+        Returns:
+            Dict[str, Any]: モデル情報
+        """
+        try:
+            model_info = genai.get_model(f"models/{self.model_name}")
+            return {
+                'name': model_info.name,
+                'display_name': model_info.display_name,
+                'description': model_info.description,
+                'input_token_limit': model_info.input_token_limit,
+                'output_token_limit': model_info.output_token_limit
+            }
+        except Exception as e:
+            self.logger.error(f"モデル情報取得エラー: {str(e)}")
+            return {'name': self.model_name, 'error': str(e)}
