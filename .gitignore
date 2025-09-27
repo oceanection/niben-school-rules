@@ -12,7 +12,7 @@ ENV/
 env/ 
  
 # 認証情報
-config/credentials/*.json 
+src/config/credentials/*.json 
  
 # テストデータ 
 data/input/* 
