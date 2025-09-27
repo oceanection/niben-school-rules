@@ -9,7 +9,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # プロジェクトルートディレクトリの特定
-PROJECT_ROOT = Path(__file__).parent.parent
+current_file = Path(__file__)
+config_dir = current_file.parent  # src/config
+src_dir = config_dir.parent       # src
+PROJECT_ROOT = src_dir.parent     # プロジェクトルート
 
 # .envファイルの読み込み
 env_path = PROJECT_ROOT / ".env"
@@ -25,7 +28,7 @@ class Settings:
         self.google_application_credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         self.spreadsheet_id = os.getenv("SPREADSHEET_ID")
         self.worksheet_name = os.getenv("WORKSHEET_NAME", "シート1")
-
+    
         # Google Drive処理モード設定
         self.batch_mode = os.getenv("BATCH_MODE", "false").lower() == "true"
         self.root_folder_id = os.getenv("ROOT_FOLDER_ID")  # 一括処理時: 2025_校則 フォルダ
