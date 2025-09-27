@@ -177,7 +177,7 @@ def write_data(worksheet: gspread.Worksheet, json_data: Dict) -> bool:
 if __name__ == '__main__':
     # --- このスクリプトを直接実行した際のサンプルコード ---
     from config.settings import settings
-    from src.sheets.client import SpreadsheetClient
+    from sheets.client import SpreadsheetClient
 
     print("--- writer.pyのサンプル実行 ---")
 

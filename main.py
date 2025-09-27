@@ -3,24 +3,30 @@
 
 Google Drive → Gemini分析 → Google Sheets保存の一連の処理を実行
 """
+
+# パス設定を最初に行う
 import sys
 from pathlib import Path
+
+# srcディレクトリをパスに追加（インポート前に実行）
+project_root = Path(__file__).parent
+src_path = project_root / "src"
+sys.path.insert(0, str(src_path))
 
 import logging
 import json
 import time
 from typing import List, Dict, Any, Optional
-from pathlib import Path
 
 # 設定
-from src.config.settings import settings
+from config.settings import settings
 
 # 各パッケージのクライアント
-from src.drive.client import create_drive_client
-from src.drive.school_rules_collector import create_school_rules_collector
-from src.gemini.client import GeminiClient
-from src.sheets.client import SpreadsheetClient
-from src.sheets.writer import write_data
+from drive.client import create_drive_client
+from drive.school_rules_collector import create_school_rules_collector
+from gemini.client import GeminiClient
+from sheets.client import SpreadsheetClient
+from sheets.writer import write_data
 
 
 class SchoolRulesAnalyzer:
@@ -486,12 +492,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # パスを修正してsrcディレクトリを追加
-    import sys
-    from pathlib import Path
-    
-    # srcディレクトリをパスに追加
-    src_path = Path(__file__).parent / "src"
-    sys.path.insert(0, str(src_path))
-    
     exit(main())

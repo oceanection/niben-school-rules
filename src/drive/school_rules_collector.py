@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from config.settings import settings
-from src.drive.client import DriveClient
+from drive.client import DriveClient
 
 
 @dataclass
