@@ -1,4 +1,4 @@
-# 環墁E��数ファイル 
+# 環境設定ファイル 
 .env 
  
 # Python関連 
@@ -11,10 +11,10 @@ venv/
 ENV/ 
 env/ 
  
-# 認証惁E�� 
+# 認証情報
 config/credentials/*.json 
  
-# チE�Eタファイル 
+# テストデータ 
 data/input/* 
 data/output/* 
 !data/input/.gitkeep 
