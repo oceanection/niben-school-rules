@@ -29,4 +29,4 @@ logs/*.log
 *.swp 
 *.swo
 
- src/config/credentials/.gitignore
+service_account.json
