@@ -6,7 +6,7 @@ Google Drive API クライアントの単体テスト
 
 import pytest
 
-from config.settings import settings
+from src.config.settings import settings
 from src.drive.client import DriveClient, create_drive_client
 
 

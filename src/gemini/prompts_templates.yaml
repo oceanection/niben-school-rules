@@ -27,207 +27,205 @@ school_rules_analysis:
     - **寄り道**: 下校時の寄り道（買い食いなど）を禁止している場合、loitering_prohibitionのstatusを「寄り道禁止」と判断します。
     - **施設への立ち入り**: カラオケ店やゲームセンターなど、特定の施設への立ち入りを禁止している場合、facility_entry_prohibitionのstatusを「特定施設への立ち入り禁止」と判断します。
 
-    以下の校則テキストを分析してください：
-
-    {pdf_content}
+    添付されたPDFファイル「{file_name}」の校則テキストを分析してください。
 
     結果は以下のJSON形式で返してください：
 
     ```json
-    {
-      "general": {
-        "revision_process": {
+    {{
+      "general": {{
+        "revision_process": {{
           "status": "規定あり" | "規定なし",
           "evidence": "string"
-        }
-      },
-      "uniform": {
-        "standard_uniform": {
+        }}
+      }},
+      "uniform": {{
+        "standard_uniform": {{
           "status": "指定あり" | "指定なし又は不明",
           "evidence": "string"
-        },
-        "lgbtq_consideration": {
+        }},
+        "lgbtq_consideration": {{
           "status": "配慮あり" | "配慮なし又は不明",
           "evidence": "string"
-        },
-        "seasonal_transition_period": {
+        }},
+        "seasonal_transition_period": {{
           "status": "移行期間あり" | "移行期間なし" | "規定なし",
           "evidence": "string"
-        }
-      },
-      "clothing_items": {
-        "shirts_blouses": {
-          "color_specification": {
+        }}
+      }},
+      "clothing_items": {{
+        "shirts_blouses": {{
+          "color_specification": {{
             "status": "指定あり" | "指定なし" | "不明",
             "evidence": "string"
-          },
-          "wearing_method": {
+          }},
+          "wearing_method": {{
             "status": "指定あり" | "指定なし",
             "details": "string",
             "evidence": "string"
-          }
-        },
-        "underwear": {
-          "obligation_to_wear": {
+          }}
+        }},
+        "underwear": {{
+          "obligation_to_wear": {{
             "status": "着用義務あり" | "規定なし",
             "evidence": "string"
-          },
-          "color_specification": {
+          }},
+          "color_specification": {{
             "status": "指定あり" | "指定なし",
             "evidence": "string"
-          },
-          "pattern_specification": {
+          }},
+          "pattern_specification": {{
             "status": "指定あり" | "指定なし",
             "evidence": "string"
-          }
-        },
-        "slacks_skirts": {
-          "length_specification": {
+          }}
+        }},
+        "slacks_skirts": {{
+          "length_specification": {{
             "status": "指定あり" | "規定なし",
             "evidence": "string"
-          },
-          "belt_obligation": {
+          }},
+          "belt_obligation": {{
             "status": "着用義務あり" | "規定なし",
             "evidence": "string"
-          },
-          "belt_color_specification": {
+          }},
+          "belt_color_specification": {{
             "status": "指定あり" | "指定なし",
             "evidence": "string"
-          },
-          "belt_design_specification": {
+          }},
+          "belt_design_specification": {{
             "status": "指定あり" | "指定なし",
             "evidence": "string"
-          }
-        },
-        "indoor_outerwear": {
-          "color_specification": {
+          }}
+        }},
+        "indoor_outerwear": {{
+          "color_specification": {{
             "status": "指定あり" | "規定なし",
             "evidence": "string"
-          },
-          "type_restriction": {
+          }},
+          "type_restriction": {{
             "status": "種類を限定" | "規定なし",
             "evidence": "string"
-          },
-          "pattern_specification": {
+          }},
+          "pattern_specification": {{
             "status": "指定あり" | "規定なし",
             "evidence": "string"
-          }
-        },
-        "outdoor_outerwear": {
-          "school_designated": {
+          }}
+        }},
+        "outdoor_outerwear": {{
+          "school_designated": {{
             "status": "学校指定" | "規定なし",
             "evidence": "string"
-          },
-          "color_specification": {
+          }},
+          "color_specification": {{
             "status": "指定あり" | "規定なし",
             "evidence": "string"
-          },
-          "design_specification": {
+          }},
+          "design_specification": {{
             "status": "指定あり" | "規定なし",
             "evidence": "string"
-          }
-        },
-        "scarves_gloves": {
+          }}
+        }},
+        "scarves_gloves": {{
           "status": "着用禁止" | "規定なし",
           "evidence": "string"
-        },
-        "socks": {
-          "design_specification": {
+        }},
+        "socks": {{
+          "design_specification": {{
             "status": "色・柄・模様の指定あり" | "規定なし",
             "evidence": "string"
-          },
-          "length_specification": {
+          }},
+          "length_specification": {{
             "status": "長さの指定あり" | "規定なし",
             "evidence": "string"
-          }
-        }
-      },
-      "appearance": {
-        "hair": {
-          "gender_specific_length": {
+          }}
+        }}
+      }},
+      "appearance": {{
+        "hair": {{
+          "gender_specific_length": {{
             "status": "男女別の長さ指定あり" | "規定なし",
             "evidence": "string"
-          },
-          "fringe_neck_length": {
+          }},
+          "fringe_neck_length": {{
             "status": "前髪・襟足の長さ指定あり" | "規定なし",
             "evidence": "string"
-          },
-          "tying_obligation": {
+          }},
+          "tying_obligation": {{
             "status": "長さによる結束義務あり" | "規定なし",
             "evidence": "string"
-          },
-          "prohibited_styles_modifications": {
+          }},
+          "prohibited_styles_modifications": {{
             "status": "特定の髪型・加工の禁止あり" | "規定なし",
             "items": ["string"],
             "evidence": "string"
-          },
-          "abstract_expressions": {
+          }},
+          "abstract_expressions": {{
             "status": "抽象的な表現での指定あり" | "規定なし",
             "evidence": "string"
-          },
-          "hair_accessories": {
+          }},
+          "hair_accessories": {{
             "status": "指定あり" | "指定なし",
             "details": "string",
             "evidence": "string"
-          }
-        },
-        "face": {
-          "makeup_prohibition": {
+          }}
+        }},
+        "face": {{
+          "makeup_prohibition": {{
             "status": "メイク禁止" | "規定なし",
             "evidence": "string"
-          },
-          "eyebrow_modification_prohibition": {
+          }},
+          "eyebrow_modification_prohibition": {{
             "status": "眉毛加工の禁止あり" | "規定なし",
             "evidence": "string"
-          }
-        },
-        "inspections": {
-          "hair_inspection": {
+          }}
+        }},
+        "inspections": {{
+          "hair_inspection": {{
             "status": "頭髪検査あり" | "不明",
             "evidence": "string"
-          }
-        }
-      },
-      "belongings": {
-        "school_bag": {
-          "school_designated": {
+          }}
+        }}
+      }},
+      "belongings": {{
+        "school_bag": {{
+          "school_designated": {{
             "status": "学校指定あり" | "規定なし",
             "evidence": "string"
-          },
-          "design_specification": {
+          }},
+          "design_specification": {{
             "status": "色・デザイン等に指定あり" | "規定なし",
             "evidence": "string"
-          },
-          "accessory_restriction": {
+          }},
+          "accessory_restriction": {{
             "status": "アクセサリーの制限あり" | "規定なし",
             "evidence": "string"
-          }
-        },
-        "care_products": {
-          "carrying_prohibited": {
+          }}
+        }},
+        "care_products": {{
+          "carrying_prohibited": {{
             "status": "持ち込み禁止" | "規定なし",
             "evidence": "string"
-          },
-          "specific_item_restriction": {
+          }},
+          "specific_item_restriction": {{
             "status": "特定の用品の持ち込み制限あり" | "規定なし",
             "evidence": "string"
-          }
-        }
-      },
-      "school_life_outside": {
-        "loitering_prohibition": {
+          }}
+        }}
+      }},
+      "school_life_outside": {{
+        "loitering_prohibition": {{
           "status": "寄り道禁止" | "規定なし",
           "evidence": "string"
-        },
-        "facility_entry_prohibition": {
+        }},
+        "facility_entry_prohibition": {{
           "status": "特定施設への立ち入り禁止" | "規定なし",
           "details": "string",
           "evidence": "string"
-        },
-        "gathering_in_public_prohibition": {
+        }},
+        "gathering_in_public_prohibition": {{
           "status": "公共の場での集まり禁止" | "規定なし",
           "evidence": "string"
-        }
-      }
-    }
+        }}
+      }}
+    }}
     ```

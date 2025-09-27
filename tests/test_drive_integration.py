@@ -8,7 +8,7 @@ import pytest
 import os
 from typing import List
 
-from config.settings import settings
+from src.config.settings import settings
 from src.drive.client import create_drive_client, DriveClient
 from src.drive.school_rules_collector import (
     create_school_rules_collector, 

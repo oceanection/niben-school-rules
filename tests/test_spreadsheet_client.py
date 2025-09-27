@@ -3,7 +3,7 @@
 
 import pytest
 import datetime
-from config.settings import settings
+from src.config.settings import settings
 from src.sheets.client import SpreadsheetClient
 
 # pytestフィクスチャを定義し、テスト全体で再利用可能なクライアントオブジェクトを作成

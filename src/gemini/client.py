@@ -120,22 +120,36 @@ class GeminiClient:
         try:
             self.logger.debug(f"PDFアップロード開始: {file_name}")
             
-            # Gemini API v2の場合のファイルアップロード
+            # 最新のGemini APIのファイルアップロード方法を試行
             try:
-                # 新しいAPIバージョンを試行
-                uploaded_file = genai.upload_file(
-                    path=None,  # バイトデータの場合
-                    mime_type="application/pdf",
-                    display_name=file_name
-                )
-                self.logger.debug(f"PDFアップロード完了 (v2): {file_name}")
-                return uploaded_file
+                import tempfile
+                import os
                 
-            except (AttributeError, TypeError):
+                # 一時ファイルに保存してアップロード
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+                    temp_file.write(pdf_content)
+                    temp_file_path = temp_file.name
+                
+                try:
+                    uploaded_file = genai.upload_file(
+                        path=temp_file_path,
+                        mime_type="application/pdf",
+                        display_name=file_name
+                    )
+                    self.logger.debug(f"PDFアップロード完了: {file_name}")
+                    return uploaded_file
+                finally:
+                    # 一時ファイルを削除
+                    if os.path.exists(temp_file_path):
+                        os.unlink(temp_file_path)
+                        
+            except (AttributeError, TypeError) as e:
+                self.logger.warning(f"upload_file API使用失敗: {e}")
+                
                 # フォールバック: 直接バイトデータでの分析
-                self.logger.warning(f"upload_file APIが利用できません。直接分析を試行: {file_name}")
+                self.logger.warning(f"フォールバック: 直接分析を試行: {file_name}")
                 
-                # PDFバイトデータを直接使用（テキスト抽出が必要な場合）
+                # PDFバイトデータを直接使用
                 import base64
                 pdf_data = {
                     "mime_type": "application/pdf",
@@ -188,6 +202,7 @@ class GeminiClient:
                 system_prompt = self.prompt_templates['system_prompts']['school_rules_analysis']
                 user_prompt_template = self.prompt_templates['user_prompts']['analyze_pdf']
             
+            # ファイル名のみを安全に置換
             user_prompt = user_prompt_template.format(file_name=file_name)
             
             return {

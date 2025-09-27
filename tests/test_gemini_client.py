@@ -14,7 +14,7 @@ sys.path.insert(0, str(project_root))
 
 # 実際の設定システムを使用
 try:
-    from config.settings import settings
+    from src.config.settings import settings
     config_available = True
 except ImportError as e:
     print(f"Warning: config.settings のインポートに失敗: {e}")

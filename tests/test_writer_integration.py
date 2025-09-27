@@ -3,7 +3,7 @@
 import pytest
 import datetime
 import gspread
-from config.settings import settings
+from src.config.settings import settings
 from src.sheets.client import SpreadsheetClient
 from src.sheets.writer import write_data, convert_json_to_row, get_header_row
 

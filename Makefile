@@ -31,3 +31,6 @@ setup:
 # Install oython dependencies from requirements.txt
 install:
 	@$(PYTHON) -m pip install -r requirements.txt
+
+run:
+	@$(PYTHON) .\src\main.py
