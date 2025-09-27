@@ -27,4 +27,6 @@ logs/*.log
 .vscode/ 
 .idea/ 
 *.swp 
-*.swo 
+*.swo
+
+ src/config/credentials/.gitignore
