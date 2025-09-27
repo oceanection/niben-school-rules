@@ -32,7 +32,12 @@ class Settings:
 
         # Gemini API設定
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
-        self.gemini_model = os.getenv("GEMINI_MODEL", "gemini-pro-vision")
+        self.gemini_model = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash")
+
+        gemini_temperature = float(os.getenv("GEMINI_TEMPERATURE", "0.1"))
+        gemini_max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "6144"))
+        gemini_top_p = float(os.getenv("GEMINI_TOP_P", "0.85"))
+        gemini_top_k = int(os.getenv("GEMINI_TOP_K", "50"))
         
         # プロジェクト設定
         self.project_root = PROJECT_ROOT

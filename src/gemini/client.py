@@ -22,8 +22,8 @@ class GeminiRequest:
     prompt: str
     file_content: Optional[bytes] = None
     file_name: Optional[str] = None
-    temperature: float = 0.1
-    max_output_tokens: int = 8192
+    temperature: Optional[float] = None  # Noneの場合は設定値を使用
+    max_output_tokens: Optional[int] = None  # Noneの場合は設定値を使用
 
 
 @dataclass
@@ -53,15 +53,14 @@ class GeminiClient:
             # API キーを設定
             genai.configure(api_key=settings.gemini_api_key)
             
-            # モデルを初期化
+            # モデルを初期化（デフォルト設定）
             self.model = genai.GenerativeModel(
-                model_name=settings.gemini_model,  # 既存の設定を使用
+                model_name=settings.gemini_model,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=0.1,  # デフォルト値
-                    top_p=0.95,
-                    top_k=64,
-                    max_output_tokens=8192,  # デフォルト値
-                    response_mime_type="application/json"
+                    temperature=settings.gemini_temperature,
+                    top_p=settings.gemini_top_p,
+                    top_k=settings.gemini_top_k,
+                    max_output_tokens=settings.gemini_max_output_tokens
                 ),
                 safety_settings={
                     HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
@@ -105,13 +104,14 @@ class GeminiClient:
                 # テキストのみの場合
                 content = request.prompt
             
-            # Gemini API に送信
+            # 動的な設定でAPIリクエストを送信
             response = self.model.generate_content(
                 content,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=request.temperature,
-                    max_output_tokens=request.max_output_tokens,
-                    response_mime_type="application/json"
+                    temperature=request.temperature if request.temperature is not None else settings.gemini_temperature,
+                    max_output_tokens=request.max_output_tokens if request.max_output_tokens is not None else settings.gemini_max_output_tokens,
+                    top_p=settings.gemini_top_p,
+                    top_k=settings.gemini_top_k
                 )
             )
             

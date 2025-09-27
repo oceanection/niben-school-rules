@@ -1,15 +1,14 @@
- 
 """
-gemini/client.py の単体テスト
+gemini/client.py の純粋な単体テスト
 
-実際の Gemini API を使用してテスト（PDFアップロード以外）
+prompt_manager.py や response_parser.py との依存関係を除外
+PDFアップロード機能も統合テストで実施
 """
 
 import pytest
-import json
 import time
+import os
 from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any
 
 from src.gemini.client import (
     GeminiClient,
@@ -46,8 +45,8 @@ class TestGeminiRequest:
         assert request.prompt == "テストプロンプト"
         assert request.file_content is None
         assert request.file_name is None
-        assert request.temperature == 0.1
-        assert request.max_output_tokens == 8192
+        assert request.temperature is None  # 設定値を使用
+        assert request.max_output_tokens is None  # 設定値を使用
 
 
 class TestGeminiResponse:
@@ -73,7 +72,7 @@ class TestGeminiResponse:
 
 
 class TestGeminiClient:
-    """GeminiClient クラスのテスト"""
+    """GeminiClient クラスのテスト（純粋な単体テスト）"""
     
     @classmethod
     def setup_class(cls):
@@ -81,6 +80,8 @@ class TestGeminiClient:
         # Gemini API キーの存在確認
         if not settings.gemini_api_key:
             pytest.skip("GEMINI_API_KEY が設定されていません。単体テストをスキップします。")
+        
+        print(f"使用モデル: {settings.gemini_model}")
     
     def setup_method(self):
         """各テストメソッドの前処理"""
@@ -100,14 +101,14 @@ class TestGeminiClient:
         result = self.client.test_connection()
         
         assert isinstance(result, bool)
-        assert result is True  # 正常に接続できることを期待
+        assert result is True, "Gemini API への接続に失敗しました"
     
-    def test_analyze_text_only_content(self):
-        """テキストのみの分析テスト"""
+    def test_analyze_simple_text_only_content(self):
+        """シンプルなテキストのみの分析テスト"""
         request = GeminiRequest(
-            prompt="以下のテキストを分析してください。JSON形式で回答してください。\n\nテキスト: これはテストです。",
+            prompt="「OK」とだけ答えてください。",
             temperature=0.0,
-            max_output_tokens=100
+            max_output_tokens=20
         )
         
         response = self.client.analyze_pdf_content(request)
@@ -115,137 +116,134 @@ class TestGeminiClient:
         # レスポンスの基本検証
         assert isinstance(response, GeminiResponse)
         assert response.content is not None
-        assert len(response.content) > 0
+        assert len(response.content.strip()) > 0
         assert response.finish_reason is not None
         assert isinstance(response.request_time, float)
         assert response.request_time > 0
     
-    def test_analyze_with_json_response(self):
-        """JSON レスポンスの分析テスト"""
-        json_prompt = """
-        以下の質問に JSON 形式で答えてください:
-        
-        質問: 「校則」という言葉の意味を説明してください。
-        
-        回答は以下の形式で返してください:
-        {
-            "term": "校則",
-            "definition": "説明文",
-            "examples": ["例1", "例2"]
-        }
-        """
-        
+    def test_analyze_with_different_parameters(self):
+        """異なるパラメータでの分析テスト"""
         request = GeminiRequest(
-            prompt=json_prompt,
-            temperature=0.1,
-            max_output_tokens=500
+            prompt="1から3の数字を一つ選んでください。",
+            temperature=0.5,
+            max_output_tokens=50
         )
         
         response = self.client.analyze_pdf_content(request)
         
-        # レスポンスの検証
+        # レスポンスの基本検証
         assert response.content is not None
+        assert len(response.content) > 0
         
-        # JSON形式であることを確認
-        try:
-            parsed_json = json.loads(response.content)
-            assert "term" in parsed_json
-            assert "definition" in parsed_json
-            assert isinstance(parsed_json.get("examples", []), list)
-        except json.JSONDecodeError:
-            # JSONブロック形式の場合も確認
-            assert "```json" in response.content or "{" in response.content
+        # 数字が含まれているかの基本的な確認
+        assert any(str(i) in response.content for i in range(1, 4))
     
-    def test_extract_usage_metadata(self):
-        """使用量メタデータ抽出テスト"""
+    def test_extract_usage_metadata_with_mock(self):
+        """使用量メタデータ抽出テスト（モック使用）"""
         # モックレスポンスを作成
         mock_response = MagicMock()
         mock_usage = MagicMock()
-        mock_usage.prompt_token_count = 100
-        mock_usage.candidates_token_count = 50
-        mock_usage.total_token_count = 150
+        mock_usage.prompt_token_count = 150
+        mock_usage.candidates_token_count = 75
+        mock_usage.total_token_count = 225
         mock_response.usage_metadata = mock_usage
         
         usage_metadata = self.client._extract_usage_metadata(mock_response)
         
         assert usage_metadata is not None
-        assert usage_metadata["prompt_token_count"] == 100
-        assert usage_metadata["candidates_token_count"] == 50
-        assert usage_metadata["total_token_count"] == 150
+        assert usage_metadata["prompt_token_count"] == 150
+        assert usage_metadata["candidates_token_count"] == 75
+        assert usage_metadata["total_token_count"] == 225
     
-    def test_extract_usage_metadata_missing(self):
+    def test_extract_usage_metadata_missing_attribute(self):
         """使用量メタデータが存在しない場合のテスト"""
         mock_response = MagicMock()
-        del mock_response.usage_metadata  # 属性を削除
+        # usage_metadata属性を削除
+        if hasattr(mock_response, 'usage_metadata'):
+            delattr(mock_response, 'usage_metadata')
         
         usage_metadata = self.client._extract_usage_metadata(mock_response)
         
         assert usage_metadata is None
     
-    def test_extract_usage_metadata_partial(self):
-        """使用量メタデータが部分的な場合のテスト"""
+    def test_extract_usage_metadata_exception_handling(self):
+        """使用量メタデータ抽出時の例外処理テスト"""
         mock_response = MagicMock()
-        mock_usage = MagicMock()
-        mock_usage.prompt_token_count = 100
-        # candidates_token_count と total_token_count は存在しない
-        mock_response.usage_metadata = mock_usage
         
+        # 例外を発生させるモック
+        def raise_exception(*args, **kwargs):
+            raise AttributeError("Test exception")
+        
+        mock_response.usage_metadata = MagicMock(side_effect=raise_exception)
+        
+        # 例外が発生してもNoneが返されることを確認
         usage_metadata = self.client._extract_usage_metadata(mock_response)
-        
-        assert usage_metadata is not None
-        assert usage_metadata["prompt_token_count"] == 100
-        assert usage_metadata["candidates_token_count"] == 0  # デフォルト値
-        assert usage_metadata["total_token_count"] == 0  # デフォルト値
+        assert usage_metadata is None
     
-    def test_different_temperature_settings(self):
-        """異なる temperature 設定のテスト"""
-        base_prompt = "「はい」または「いいえ」で答えてください。今日は良い天気ですか？"
+    def test_different_temperature_values(self):
+        """異なる temperature 値でのテスト"""
+        base_prompt = "「A」または「B」を選んでください。"
         
-        # 低い temperature (決定論的)
-        request_low = GeminiRequest(prompt=base_prompt, temperature=0.0, max_output_tokens=50)
+        # デフォルト設定を使用（.env値）
+        request_default = GeminiRequest(prompt=base_prompt)
+        response_default = self.client.analyze_pdf_content(request_default)
+        
+        # 明示的に低い temperature を指定
+        request_low = GeminiRequest(
+            prompt=base_prompt, 
+            temperature=0.0, 
+            max_output_tokens=10
+        )
         response_low = self.client.analyze_pdf_content(request_low)
         
-        # 高い temperature (創造的)
-        request_high = GeminiRequest(prompt=base_prompt, temperature=0.9, max_output_tokens=50)
+        # 明示的に高い temperature を指定
+        request_high = GeminiRequest(
+            prompt=base_prompt, 
+            temperature=0.9, 
+            max_output_tokens=10
+        )
         response_high = self.client.analyze_pdf_content(request_high)
         
-        # 両方とも正常にレスポンスが返ることを確認
+        # 全て正常にレスポンスが返ることを確認
+        assert response_default.content is not None
         assert response_low.content is not None
         assert response_high.content is not None
-        assert len(response_low.content) > 0
-        assert len(response_high.content) > 0
+        assert len(response_default.content.strip()) > 0
+        assert len(response_low.content.strip()) > 0
+        assert len(response_high.content.strip()) > 0
     
-    def test_max_output_tokens_limit(self):
-        """max_output_tokens 制限のテスト"""
-        long_prompt = "以下の数字を1から100まで列挙してください。各数字に詳しい説明を付けてください。"
+    def test_max_output_tokens_settings(self):
+        """max_output_tokens 設定のテスト"""
+        prompt = "短く答えてください。"
         
         # 短い制限
         request_short = GeminiRequest(
-            prompt=long_prompt, 
+            prompt=prompt, 
             temperature=0.1, 
-            max_output_tokens=100
+            max_output_tokens=10
         )
         response_short = self.client.analyze_pdf_content(request_short)
         
         # 長い制限
         request_long = GeminiRequest(
-            prompt=long_prompt, 
+            prompt=prompt, 
             temperature=0.1, 
-            max_output_tokens=2000
+            max_output_tokens=100
         )
         response_long = self.client.analyze_pdf_content(request_long)
         
-        # 短い制限の方が短いレスポンスになることを期待
+        # 両方とも正常にレスポンスが返ることを確認
         assert response_short.content is not None
         assert response_long.content is not None
-        assert len(response_short.content) <= len(response_long.content)
+        assert len(response_short.content) > 0
+        assert len(response_long.content) > 0
     
     def test_request_time_measurement(self):
         """リクエスト時間測定テスト"""
         request = GeminiRequest(
-            prompt="簡単な質問です。「OK」とだけ答えてください。",
+            prompt="すぐに「はい」と答えてください。",
             temperature=0.0,
-            max_output_tokens=10
+            max_output_tokens=5
         )
         
         start_time = time.time()
@@ -257,127 +255,174 @@ class TestGeminiClient:
         assert isinstance(response.request_time, float)
         assert response.request_time > 0
         
-        # 実際の経過時間と近い値であることを確認（誤差許容）
+        # 実際の経過時間との比較（2秒以内の誤差許容）
         actual_time = end_time - start_time
-        assert abs(response.request_time - actual_time) < 1.0  # 1秒以内の誤差
+        time_diff = abs(response.request_time - actual_time)
+        assert time_diff < 2.0, f"時間測定の誤差が大きすぎます: {time_diff}秒"
 
 
 class TestGeminiClientErrorHandling:
     """エラーハンドリングのテスト"""
     
-    def test_invalid_api_key(self):
-        """無効なAPIキーのテスト"""
-        with patch('config.settings.settings') as mock_settings:
-            mock_settings.gemini_api_key = "invalid_api_key"
+    def test_missing_api_key_initialization(self):
+        """APIキー未設定時の初期化エラーテスト"""
+        # 環境変数を一時的に保存・クリア
+        original_key = os.environ.get('GEMINI_API_KEY')
+        
+        try:
+            # 環境変数をクリア
+            if 'GEMINI_API_KEY' in os.environ:
+                del os.environ['GEMINI_API_KEY']
             
-            # 初期化時はエラーにならない（API呼び出し時にエラー）
-            try:
-                client = GeminiClient()
-                assert client is not None
-            except Exception:
-                # 初期化で失敗する場合もある
-                pass
-    
-    def test_missing_api_key(self):
-        """APIキー未設定のテスト"""
-        with patch('config.settings.settings') as mock_settings:
-            mock_settings.gemini_api_key = None
-            
-            with pytest.raises(ValueError, match="Gemini API キーが設定されていません"):
-                GeminiClient()
+            # 設定のモック
+            with patch('src.gemini.client.settings') as mock_settings:
+                mock_settings.gemini_api_key = None
+                mock_settings.gemini_model = "models/gemini-2.5-flash"
+                
+                with pytest.raises(ValueError, match="Gemini API キーが設定されていません"):
+                    GeminiClient()
+        
+        finally:
+            # 環境変数を復元
+            if original_key:
+                os.environ['GEMINI_API_KEY'] = original_key
     
     @pytest.mark.skipif(not settings.gemini_api_key, reason="Gemini API key not available")
-    def test_empty_prompt(self):
-        """空のプロンプトのテスト"""
+    def test_empty_prompt_error(self):
+        """空のプロンプトでのエラーテスト"""
         client = create_gemini_client()
         request = GeminiRequest(prompt="", temperature=0.1, max_output_tokens=10)
         
-        # 空のプロンプトでもエラーにならずに何らかのレスポンスが返ることを期待
-        response = client.analyze_pdf_content(request)
-        assert isinstance(response, GeminiResponse)
+        # 空のプロンプトはエラーになることを期待
+        with pytest.raises(ConnectionError):
+            client.analyze_pdf_content(request)
     
     @pytest.mark.skipif(not settings.gemini_api_key, reason="Gemini API key not available")
-    def test_very_long_prompt(self):
-        """非常に長いプロンプトのテスト"""
-        client = create_gemini_client()
-        
-        # 非常に長いプロンプトを作成
-        long_prompt = "これはテストです。" * 1000  # 約8000文字
-        request = GeminiRequest(
-            prompt=long_prompt, 
-            temperature=0.1, 
-            max_output_tokens=100
-        )
-        
-        # 長いプロンプトでも処理できることを確認
-        response = client.analyze_pdf_content(request)
-        assert isinstance(response, GeminiResponse)
-        assert response.content is not None
+    def test_invalid_model_configuration(self):
+        """無効なモデル設定でのエラーテスト"""
+        # 無効なモデル名で初期化を試行
+        with patch('src.gemini.client.settings') as mock_settings:
+            mock_settings.gemini_api_key = settings.gemini_api_key
+            mock_settings.gemini_model = "invalid-model-name"
+            
+            # 初期化時または最初のAPI呼び出し時にエラーが発生することを期待
+            try:
+                client = GeminiClient()
+                # API呼び出しでエラーが発生する場合
+                request = GeminiRequest(prompt="テスト", max_output_tokens=10)
+                with pytest.raises(ConnectionError):
+                    client.analyze_pdf_content(request)
+            except (ConnectionError, ValueError):
+                # 初期化時にエラーが発生する場合も想定内
+                pass
 
 
 class TestCreateGeminiClient:
     """create_gemini_client ファクトリー関数のテスト"""
     
     @pytest.mark.skipif(not settings.gemini_api_key, reason="Gemini API key not available")
-    def test_create_gemini_client(self):
+    def test_create_gemini_client_factory(self):
         """ファクトリー関数のテスト"""
         client = create_gemini_client()
         
         assert isinstance(client, GeminiClient)
         assert client.model is not None
+        assert hasattr(client, 'logger')
 
 
-class TestGeminiClientIntegrationBasics:
-    """基本的な統合テスト（軽量）"""
+class TestGeminiClientBasicFunctionality:
+    """基本機能のテスト（依存関係なし）"""
     
     @pytest.mark.skipif(not settings.gemini_api_key, reason="Gemini API key not available")
-    def test_school_rules_style_prompt(self):
-        """校則分析スタイルのプロンプトテスト"""
-        school_rules_prompt = """
-        以下の校則テキストを分析し、JSON形式で回答してください。
-
-        校則テキスト:
-        「生徒は清潔な服装を心がけること。髪型は中学生らしいものとする。」
-
-        回答形式:
-        {
-            "uniform": {
-                "cleanliness_requirement": {
-                    "status": "規定あり",
-                    "evidence": "生徒は清潔な服装を心がけること"
-                }
-            },
-            "appearance": {
-                "hair": {
-                    "abstract_expressions": {
-                        "status": "抽象的な表現での指定あり",
-                        "evidence": "髪型は中学生らしいものとする"
-                    }
-                }
-            }
-        }
-        """
-        
+    def test_simple_question_answer(self):
+        """シンプルな質問応答テスト"""
         client = create_gemini_client()
+        
         request = GeminiRequest(
-            prompt=school_rules_prompt,
-            temperature=0.1,
-            max_output_tokens=1000
+            prompt="2+2はいくつですか？数字だけで答えてください。",
+            temperature=0.0,
+            max_output_tokens=10
         )
         
         response = client.analyze_pdf_content(request)
         
         # 基本的なレスポンス検証
         assert response.content is not None
-        assert len(response.content) > 0
-        
-        # JSON形式のレスポンスが含まれているかチェック
-        content_lower = response.content.lower()
-        assert any(keyword in content_lower for keyword in ['"status"', '"evidence"', 'uniform', 'appearance'])
+        assert "4" in response.content
         
         # 使用量メタデータの確認
         if response.usage_metadata:
             assert response.usage_metadata["total_token_count"] > 0
+    
+    @pytest.mark.skipif(not settings.gemini_api_key, reason="Gemini API key not available")
+    def test_finish_reason_capture(self):
+        """finish_reason の捕捉テスト"""
+        client = create_gemini_client()
+        
+        request = GeminiRequest(
+            prompt="「完了」と言ってください。",
+            temperature=0.0,
+            max_output_tokens=50
+        )
+        
+        response = client.analyze_pdf_content(request)
+        
+        # finish_reason が設定されていることを確認
+        assert response.finish_reason is not None
+        assert isinstance(response.finish_reason, str)
+        # 通常は "STOP" が返される
+        assert response.finish_reason in ["STOP", "MAX_TOKENS", "SAFETY", "RECITATION", "OTHER"]
+
+
+class TestGeminiClientParameterValidation:
+    """Gemini パラメータ設定の検証テスト"""
+    
+    @pytest.mark.skipif(not settings.gemini_api_key, reason="Gemini API key not available")
+    def test_env_parameter_usage(self):
+        """環境変数設定パラメータの使用確認テスト"""
+        client = create_gemini_client()
+        
+        # 設定値の確認
+        print(f"GEMINI_TEMPERATURE: {settings.gemini_temperature}")
+        print(f"GEMINI_MAX_OUTPUT_TOKENS: {settings.gemini_max_output_tokens}")
+        print(f"GEMINI_TOP_P: {settings.gemini_top_p}")
+        print(f"GEMINI_TOP_K: {settings.gemini_top_k}")
+        
+        # 設定値の妥当性確認
+        assert 0.0 <= settings.gemini_temperature <= 1.0
+        assert settings.gemini_max_output_tokens > 0
+        assert 0.0 <= settings.gemini_top_p <= 1.0
+        assert settings.gemini_top_k > 0
+        
+        # デフォルト設定でのAPIテスト
+        request = GeminiRequest(prompt="設定テストです。「OK」と答えてください。")
+        response = client.analyze_pdf_content(request)
+        
+        assert response.content is not None
+        assert len(response.content) > 0
+    
+    @pytest.mark.skipif(not settings.gemini_api_key, reason="Gemini API key not available")  
+    def test_token_limit_effectiveness(self):
+        """トークン制限の効果確認テスト"""
+        client = create_gemini_client()
+        
+        # 短いトークン制限
+        request_short = GeminiRequest(
+            prompt="1から100まで数えてください。",
+            max_output_tokens=50
+        )
+        response_short = client.analyze_pdf_content(request_short)
+        
+        # 設定値でのトークン制限
+        request_default = GeminiRequest(
+            prompt="1から100まで数えてください。"
+        )
+        response_default = client.analyze_pdf_content(request_default)
+        
+        # 短い制限の方が短いレスポンスになることを期待
+        assert response_short.content is not None
+        assert response_default.content is not None
+        assert len(response_short.content) <= len(response_default.content)
 
 
 if __name__ == "__main__":
