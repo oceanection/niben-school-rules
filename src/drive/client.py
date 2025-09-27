@@ -1,5 +1,5 @@
 """
-Google Drive API クライアント
+Google Drive API クライアント（共有ドライブ対応版）
 
 Google Drive APIの基本操作を提供
 """
@@ -16,7 +16,7 @@ from config.settings import settings
 
 
 class DriveClient:
-    """Google Drive API クライアント"""
+    """Google Drive API クライアント（共有ドライブ対応）"""
     
     def __init__(self):
         self.service = None
@@ -40,7 +40,7 @@ class DriveClient:
     
     def list_folders(self, parent_folder_id: str) -> List[Dict[str, Any]]:
         """
-        指定フォルダ内のサブフォルダ一覧を取得
+        指定フォルダ内のサブフォルダ一覧を取得（共有ドライブ対応）
         
         Args:
             parent_folder_id: 親フォルダID
@@ -54,7 +54,9 @@ class DriveClient:
             results = self.service.files().list(
                 q=query,
                 fields="files(id, name, createdTime, modifiedTime)",
-                orderBy="name"
+                orderBy="name",
+                supportsAllDrives=True,  # 共有ドライブ対応
+                includeItemsFromAllDrives=True  # 共有ドライブ対応
             ).execute()
             
             return results.get('files', [])
@@ -64,7 +66,7 @@ class DriveClient:
     
     def list_files(self, folder_id: str, mime_type: Optional[str] = None) -> List[Dict[str, Any]]:
         """
-        指定フォルダ内のファイル一覧を取得
+        指定フォルダ内のファイル一覧を取得（共有ドライブ対応）
         
         Args:
             folder_id: フォルダID
@@ -82,7 +84,9 @@ class DriveClient:
             results = self.service.files().list(
                 q=query,
                 fields="files(id, name, size, mimeType, createdTime, modifiedTime, webViewLink)",
-                orderBy="name"
+                orderBy="name",
+                supportsAllDrives=True,  # 共有ドライブ対応
+                includeItemsFromAllDrives=True  # 共有ドライブ対応
             ).execute()
             
             files = []
@@ -105,7 +109,7 @@ class DriveClient:
     
     def download_file_content(self, file_id: str) -> bytes:
         """
-        ファイル内容をメモリに直接ダウンロード
+        ファイル内容をメモリに直接ダウンロード（共有ドライブ対応）
         
         Args:
             file_id: ファイルID
@@ -114,7 +118,10 @@ class DriveClient:
             ファイルの内容（バイナリデータ）
         """
         try:
-            request = self.service.files().get_media(fileId=file_id)
+            request = self.service.files().get_media(
+                fileId=file_id,
+                supportsAllDrives=True  # 共有ドライブ対応
+            )
             file_content = io.BytesIO()
             
             downloader = MediaIoBaseDownload(file_content, request)
@@ -130,7 +137,7 @@ class DriveClient:
     
     def get_file_info(self, file_id: str) -> Dict[str, Any]:
         """
-        ファイル情報を取得
+        ファイル情報を取得（共有ドライブ対応）
         
         Args:
             file_id: ファイルID
@@ -141,7 +148,8 @@ class DriveClient:
         try:
             file_info = self.service.files().get(
                 fileId=file_id,
-                fields="id, name, size, mimeType, parents, createdTime, modifiedTime, webViewLink"
+                fields="id, name, size, mimeType, parents, createdTime, modifiedTime, webViewLink",
+                supportsAllDrives=True  # 共有ドライブ対応
             ).execute()
             
             return {
