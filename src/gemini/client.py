@@ -27,6 +27,13 @@ class GeminiClient:
         """
         self.logger = logging.getLogger(__name__)
         self.api_key = api_key
+        
+        # モデル名の正規化（重複prefix除去）
+        if model_name.startswith('models/models/'):
+            model_name = model_name.replace('models/models/', 'models/')
+        elif not model_name.startswith('models/'):
+            model_name = f"models/{model_name}"
+            
         self.model_name = model_name
         
         # Gemini APIを設定
@@ -113,14 +120,28 @@ class GeminiClient:
         try:
             self.logger.debug(f"PDFアップロード開始: {file_name}")
             
-            uploaded_file = genai.upload_file(
-                data=pdf_content,
-                mime_type="application/pdf",
-                display_name=file_name
-            )
-            
-            self.logger.debug(f"PDFアップロード完了: {file_name}")
-            return uploaded_file
+            # Gemini API v2の場合のファイルアップロード
+            try:
+                # 新しいAPIバージョンを試行
+                uploaded_file = genai.upload_file(
+                    path=None,  # バイトデータの場合
+                    mime_type="application/pdf",
+                    display_name=file_name
+                )
+                self.logger.debug(f"PDFアップロード完了 (v2): {file_name}")
+                return uploaded_file
+                
+            except (AttributeError, TypeError):
+                # フォールバック: 直接バイトデータでの分析
+                self.logger.warning(f"upload_file APIが利用できません。直接分析を試行: {file_name}")
+                
+                # PDFバイトデータを直接使用（テキスト抽出が必要な場合）
+                import base64
+                pdf_data = {
+                    "mime_type": "application/pdf",
+                    "data": base64.b64encode(pdf_content).decode()
+                }
+                return pdf_data
             
         except Exception as e:
             error_msg = f"PDFアップロードエラー: {str(e)}"
@@ -157,12 +178,17 @@ class GeminiClient:
             Dict[str, str]: システムプロンプトとユーザープロンプト
         """
         try:
-            system_prompt = self.prompt_templates['system_prompts']['school_rules_analysis']
+            # 実際のプロンプト構造に対応
+            if 'school_rules_analysis' in self.prompt_templates:
+                analysis_prompts = self.prompt_templates['school_rules_analysis']
+                system_prompt = analysis_prompts['system']
+                user_prompt_template = analysis_prompts['user']
+            else:
+                # フォールバック: 旧形式
+                system_prompt = self.prompt_templates['system_prompts']['school_rules_analysis']
+                user_prompt_template = self.prompt_templates['user_prompts']['analyze_pdf']
             
-            user_prompt_template = self.prompt_templates['user_prompts']['analyze_pdf']
-            user_prompt = user_prompt_template.format(
-                file_name=file_name
-            )
+            user_prompt = user_prompt_template.format(file_name=file_name)
             
             return {
                 'system': system_prompt,
@@ -172,6 +198,7 @@ class GeminiClient:
         except KeyError as e:
             error_msg = f"プロンプトテンプレートキーが見つかりません: {e}"
             self.logger.error(error_msg)
+            self.logger.error(f"利用可能なキー: {list(self.prompt_templates.keys())}")
             raise ValueError(error_msg)
         except Exception as e:
             error_msg = f"プロンプト構築エラー: {str(e)}"

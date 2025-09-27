@@ -24,6 +24,7 @@ class Settings:
         # Google API設定
         self.google_application_credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         self.spreadsheet_id = os.getenv("SPREADSHEET_ID")
+        self.worksheet_name = os.getenv("WORKSHEET_NAME", "シート1")
 
         # Google Drive処理モード設定
         self.batch_mode = os.getenv("BATCH_MODE", "false").lower() == "true"
