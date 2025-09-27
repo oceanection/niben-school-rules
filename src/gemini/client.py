@@ -124,6 +124,7 @@ class GeminiClient:
             try:
                 import tempfile
                 import os
+                import time
                 
                 # 一時ファイルに保存してアップロード
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
@@ -131,18 +132,32 @@ class GeminiClient:
                     temp_file_path = temp_file.name
                 
                 try:
+
+                    # ファイルが完全に書き込まれるまで少し待機
+                    time.sleep(0.5)
+
                     uploaded_file = genai.upload_file(
                         path=temp_file_path,
                         mime_type="application/pdf",
                         display_name=file_name
                     )
                     self.logger.debug(f"PDFアップロード完了: {file_name}")
+
+                    # アップロード完了後、少し待機してから削除
+                    time.sleep(0.5)
+
                     return uploaded_file
                 finally:
+                    import time
+                    time.sleep(1)
+                    
                     # 一時ファイルを削除
-                    if os.path.exists(temp_file_path):
-                        os.unlink(temp_file_path)
-                        
+                    try:
+                        if os.path.exists(temp_file_path):
+                            os.unlink(temp_file_path)
+                    except:
+                        pass
+                            
             except (AttributeError, TypeError) as e:
                 self.logger.warning(f"upload_file API使用失敗: {e}")
                 
