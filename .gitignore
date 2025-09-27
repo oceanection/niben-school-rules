@@ -30,3 +30,8 @@ logs/*.log
 *.swo
 
 service_account.json
+
+log/
+logs/*
+src/logs/*
+src/logs
