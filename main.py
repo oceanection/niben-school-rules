@@ -234,6 +234,7 @@ class SchoolRulesAnalyzer:
                 parsed_result['_metadata'] = {
                     'ward': school_context['ward'],
                     'school': school_context['school'],
+                    'school_folder_url': school_context.get('school_folder_url', ''), 
                     'file_name': file_name,
                     'file_id': file_id,
                     'file_path': pdf_info['file_path'],

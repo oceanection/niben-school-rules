@@ -6,6 +6,7 @@ from typing import Dict, List
 def get_header_row() -> List[str]:
     """スプレッドシートに書き込むヘッダー行のリストを返します。"""
     return [
+        "区名", "学校名", "学校フォルダURL", 
         "見直しプロセス_規定", "見直しプロセス_根拠", "標準服_指定", "標準服_根拠",
         "LGBTQへの配慮", "LGBTQへの配慮_根拠", "衣替え移行期間", "衣替え移行期間_根拠",
         "シャツ・ブラウス_色指定", "シャツ・ブラウス_色指定_根拠", "シャツ・ブラウス_着用方法_指定",
@@ -49,6 +50,9 @@ def convert_json_to_row(data: Dict) -> List:
         return d if d is not None else default
 
     row = [
+         _get(data, "_metadata", "ward"),           # ← 区名
+        _get(data, "_metadata", "school"),         # ← 学校名  
+        _get(data, "_metadata", "school_folder_url"),  # ← URL
         _get(data, "general", "revision_process", "status"),
         _get(data, "general", "revision_process", "evidence"),
         _get(data, "uniform", "standard_uniform", "status"),

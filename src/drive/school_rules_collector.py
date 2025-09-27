@@ -23,6 +23,8 @@ class SchoolRulePDF:
     web_view_link: str
     created_time: str
     modified_time: str
+    school_folder_url: str
+
 
 
 class SchoolRulesCollector:
@@ -121,6 +123,10 @@ class SchoolRulesCollector:
         
         for school_folder in school_folders:
             try:
+
+                # 学校フォルダのURLを生成 ← ここに追加
+                school_folder_url = f"https://drive.google.com/drive/folders/{school_folder['id']}"
+
                 # 各学校フォルダ内の全PDFファイルを取得（校則データと保証されている）
                 pdf_files = self.drive_client.list_files(
                     school_folder['id'], 
@@ -138,7 +144,8 @@ class SchoolRulesCollector:
                         file_path=f"{ward_name}/{school_folder['name']}/{pdf_file['name']}",
                         web_view_link=pdf_file.get('web_view_link', ''),
                         created_time=pdf_file.get('created_time', ''),
-                        modified_time=pdf_file.get('modified_time', '')
+                        modified_time=pdf_file.get('modified_time', ''),
+                        school_folder_url=school_folder_url
                     )
                     ward_pdfs.append(school_rule_pdf)
                     
