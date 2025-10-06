@@ -238,6 +238,7 @@ class SchoolRulesAnalyzer:
                     'file_name': file_name,
                     'file_id': file_id,
                     'file_path': pdf_info['file_path'],
+                    'web_view_link': pdf_info.get('web_view_link', ''),
                     'analysis_timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
                     'model_used': self.gemini_client.model_name
                 }

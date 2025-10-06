@@ -53,6 +53,7 @@ def convert_json_to_row(data: Dict) -> List:
          _get(data, "_metadata", "ward"),           # ← 区名
         _get(data, "_metadata", "school"),         # ← 学校名  
         _get(data, "_metadata", "school_folder_url"),  # ← URL
+        _get(data, "_metadata", "web_view_link"),
         _get(data, "general", "revision_process", "status"),
         _get(data, "general", "revision_process", "evidence"),
         _get(data, "uniform", "standard_uniform", "status"),
