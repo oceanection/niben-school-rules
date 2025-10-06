@@ -6,7 +6,6 @@ school_rules_analysis:
 
   user: |
     # 制約条件
-
     - 必ず指定されたJSONスキーマに従って出力してください。
     - 各分析項目の status には、指定された選択肢の中から最も適切なものを一つだけ記述してください。
     - 各分析項目の evidence には、その status の判断根拠となった校則の原文を、変更せずにそのまま引用してください。根拠となる記述がない場合は、空文字列（""）にしてください。
@@ -14,7 +13,6 @@ school_rules_analysis:
     - JSONのキーは必ず英語（スネークケース）で記述してください。
 
     # 分析にあたっての補足事項
-
     - **校則の見直し**: 校則（生活のきまり）についての見直しに関する手続規定の記述がある場合、revision_processのstatusを「規定あり」と判断します。
     - **標準服**: 私服を許可する旨の明記がない限り、standard_uniformのstatusは「指定あり」と判断します。
     - **LGBTQへの配慮**: 女子生徒がスラックスを選択できるなど、性別に関わらず制服を選択できる旨の記述がある場合、lgbtq_considerationのstatusは「配慮あり」と判断します。
@@ -26,6 +24,34 @@ school_rules_analysis:
     - **通学カバン**: 学校指定のカバンや、それに準ずるものの使用を義務付けている場合、school_bag内のschool_designatedのstatusを「学校指定あり」と判断します。
     - **寄り道**: 下校時の寄り道（買い食いなど）を禁止している場合、loitering_prohibitionのstatusを「寄り道禁止」と判断します。
     - **施設への立ち入り**: カラオケ店やゲームセンターなど、特定の施設への立ち入りを禁止している場合、facility_entry_prohibitionのstatusを「特定施設への立ち入り禁止」と判断します。
+    - **要約**: brief_descriptionには校則全体の内容を30字以内で簡潔に要約します。rule_categoriesには「服装、頭髪、持ち物、校外生活」など主なカテゴリを50字以内で列挙します。
+    - **標準服のタイプ**: ブレザー、襟、ボタンなどの記述からブレザータイプと判断できる場合、uniform_typeのstatusを「ブレザータイプ」とします。セーラー服など明らかに異なる場合は「その他」とします。
+    - **体操服での登校**: 体操服での登校が認められている場合は「登校可」、明確に禁止されている場合は「登校禁止」と判断します。
+    - **シャツの腕まくり**: 腕まくりや袖をまくることを禁止する記述がある場合、sleeves_rolling_prohibitionのstatusを「腕まくり禁止」と判断します。
+    - **タイツ**: タイツの着用を禁止する記述がある場合は「着用禁止」、色の指定（黒、紺など）がある場合はcolor_specificationを「指定あり」と判断します。
+    - **カーディガン・トレーナー**: 屋内でのカーディガンやトレーナーの着用を禁止する記述がある場合、それぞれのprohibitionを「着用禁止」と判断します。
+    - **耳あて**: イヤーマフや耳当ての使用を禁止する記述がある場合、ear_muffsのstatusを「使用禁止」と判断します。
+    - **髪型の男女別ルール**: 「男子は○○、女子は××」のように性別で異なる髪型ルールを設定している場合、gender_specific_rulesを「男女でルールを分けている」と判断します。
+    - **前髪の指定**: 前髪の長さ（眉にかからない、目にかからないなど）や形状について具体的な指定がある場合、fringe_specificationを「前髪について指定あり」とし、詳細をdetailsに記載します。
+    - **肩にかかったら結ぶ**: 髪が肩につく長さになったら結ぶことを義務付ける記述がある場合、shoulder_length_tyingを「肩にかかったら結ぶ義務あり」と判断します。
+    - **流行の髪型**: 「流行を追わない」「流行の髪型は禁止」などの記述がある場合、trendy_hairstyle_prohibitionを「流行を追った髪型の禁止」と判断します。
+    - **髪ゴムの色**: 髪を結ぶゴムやシュシュの色について指定（黒、紺、茶など）がある場合、hair_tie_colorを「色指定あり」と判断します。
+    - **アメリカピン**: アメリカピンやヘアピンの使用を禁止する記述がある場合、bobby_pin_prohibitionを「アメリカピンの使用禁止」と判断します。
+    - **整髪料**: ワックス、ジェル、スプレーなど整髪料の使用を禁止する記述がある場合、hair_styling_product_prohibitionを「整髪料の使用禁止」と判断します。
+    - **色付きリップクリーム**: 色付きリップクリームや口紅の使用を禁止する記述がある場合、tinted_lip_balm_prohibitionを「色付きリップクリームの使用禁止」と判断します。
+    - **キーホルダー**: 通学カバンに付けるキーホルダーについて、個数や大きさ、デザインなどの制限がある場合、keychain_specificationを「キーホルダーについて指定あり」と判断します。
+    - **制汗剤**: デオドラントスプレーや制汗剤の使用や持ち込みを禁止する記述がある場合、deodorant_prohibitionを「制汗剤の利用禁止」と判断します。
+    - **香り付きケア用品**: 香水や香り付きのボディケア用品の使用を禁止する記述がある場合、scented_products_prohibitionを「香り付きケア用品の使用禁止」と判断します。
+    - **水筒**: 水筒の持ち込みについて制限（サイズ、素材、デザインなど）がある場合はregulationを「規制あり」、中身について「水のみ」「お茶のみ」などの指定がある場合はcontent_specificationを「中身について指定あり」とします。
+    - **腕時計・スマートウォッチ**: 腕時計の着用を禁止する記述がある場合はanalog_watch_prohibitionを、スマートウォッチやApple Watchなどを禁止する記述がある場合はsmart_watch_prohibitionを「着用禁止」と判断します。
+    - **スマートフォン**: スマートフォンや携帯電話の持ち込みを禁止している場合はbringing_prohibitionを「持ち込み禁止」、保護者の許可や届出など条件付きで許可している場合はconditional_permissionを「条件付きで許可」とし、条件をconditionsに記載します。
+    - **漫画**: 漫画やコミック雑誌の持ち込みを禁止する記述がある場合、bringing_prohibitionを「漫画の持ち込み禁止」と判断します。
+    - **5分前着席**: 始業や授業開始の5分前に着席することを求める記述がある場合、five_minutes_before_seatingを「5分前着席の規定あり」と判断します。
+    - **他クラスへの立ち入り**: 休み時間などに他のクラスの教室に入ることを禁止する記述がある場合、other_class_entry_prohibitionを「他クラスへの立ち入り禁止」と判断します。
+    - **買い食い**: 登下校時の買い食いを明確に禁止する記述がある場合、buying_food_prohibitionを「買い食い禁止」と判断します。寄り道禁止とは別項目として扱います。
+    - **友達同士の外泊**: 友達の家に泊まることや、友達同士での外泊を禁止する記述がある場合、sleepover_prohibitionを「友達同士の外泊禁止」と判断します。
+    - **SNS**: SNSやインターネットの利用について何らかのルールや制限がある場合、sns_regulationを「SNSについて規制あり」、21時以降の利用を禁止する記述がある場合はsns_time_restrictionを「21時以降の利用禁止」と判断します。
+    - **家の手伝い**: 家庭で家事の手伝いをすることを推奨または指示する記述がある場合、household_chores_instructionを「家の手伝いについて指示あり」と判断します。
 
     添付されたPDFファイル「{file_name}」の校則テキストを分析してください。
 
@@ -33,6 +59,10 @@ school_rules_analysis:
 
     ```json
     {{
+      "summary": {{
+        "brief_description": "string (30字以内でPDF内容を要約)",
+        "rule_categories": "string (50字以内でカテゴリを列挙)"
+      }},
       "general": {{
         "revision_process": {{
           "status": "規定あり" | "規定なし",
@@ -44,12 +74,20 @@ school_rules_analysis:
           "status": "指定あり" | "指定なし又は不明",
           "evidence": "string"
         }},
+        "uniform_type": {{
+          "status": "ブレザータイプ" | "その他" | "不明",
+          "evidence": "string"
+        }},
         "lgbtq_consideration": {{
           "status": "配慮あり" | "配慮なし又は不明",
           "evidence": "string"
         }},
         "seasonal_transition_period": {{
           "status": "移行期間あり" | "移行期間なし" | "規定なし",
+          "evidence": "string"
+        }},
+        "gym_wear_commuting": {{
+          "status": "登校可" | "登校禁止" | "規定なし",
           "evidence": "string"
         }}
       }},
@@ -62,6 +100,10 @@ school_rules_analysis:
           "wearing_method": {{
             "status": "指定あり" | "指定なし",
             "details": "string",
+            "evidence": "string"
+          }},
+          "sleeves_rolling_prohibition": {{
+            "status": "腕まくり禁止" | "規定なし",
             "evidence": "string"
           }}
         }},
@@ -97,6 +139,16 @@ school_rules_analysis:
             "evidence": "string"
           }}
         }},
+        "tights": {{
+          "wearing_prohibition": {{
+            "status": "着用禁止" | "規定なし",
+            "evidence": "string"
+          }},
+          "color_specification": {{
+            "status": "指定あり" | "規定なし",
+            "evidence": "string"
+          }}
+        }},
         "indoor_outerwear": {{
           "color_specification": {{
             "status": "指定あり" | "規定なし",
@@ -108,6 +160,14 @@ school_rules_analysis:
           }},
           "pattern_specification": {{
             "status": "指定あり" | "規定なし",
+            "evidence": "string"
+          }},
+          "cardigan_prohibition": {{
+            "status": "着用禁止" | "規定なし",
+            "evidence": "string"
+          }},
+          "sweatshirt_prohibition": {{
+            "status": "着用禁止" | "規定なし",
             "evidence": "string"
           }}
         }},
@@ -129,6 +189,10 @@ school_rules_analysis:
           "status": "着用禁止" | "規定なし",
           "evidence": "string"
         }},
+        "ear_muffs": {{
+          "status": "使用禁止" | "規定なし",
+          "evidence": "string"
+        }},
         "socks": {{
           "design_specification": {{
             "status": "色・柄・模様の指定あり" | "規定なし",
@@ -146,17 +210,34 @@ school_rules_analysis:
             "status": "男女別の長さ指定あり" | "規定なし",
             "evidence": "string"
           }},
+          "gender_specific_rules": {{
+            "status": "男女でルールを分けている" | "規定なし",
+            "evidence": "string"
+          }},
           "fringe_neck_length": {{
             "status": "前髪・襟足の長さ指定あり" | "規定なし",
+            "evidence": "string"
+          }},
+          "fringe_specification": {{
+            "status": "前髪について指定あり" | "規定なし",
+            "details": "string",
             "evidence": "string"
           }},
           "tying_obligation": {{
             "status": "長さによる結束義務あり" | "規定なし",
             "evidence": "string"
           }},
+          "shoulder_length_tying": {{
+            "status": "肩にかかったら結ぶ義務あり" | "規定なし",
+            "evidence": "string"
+          }},
           "prohibited_styles_modifications": {{
             "status": "特定の髪型・加工の禁止あり" | "規定なし",
             "items": ["string"],
+            "evidence": "string"
+          }},
+          "trendy_hairstyle_prohibition": {{
+            "status": "流行を追った髪型の禁止" | "規定なし",
             "evidence": "string"
           }},
           "abstract_expressions": {{
@@ -167,6 +248,18 @@ school_rules_analysis:
             "status": "指定あり" | "指定なし",
             "details": "string",
             "evidence": "string"
+          }},
+          "hair_tie_color": {{
+            "status": "色指定あり" | "規定なし",
+            "evidence": "string"
+          }},
+          "bobby_pin_prohibition": {{
+            "status": "アメリカピンの使用禁止" | "規定なし",
+            "evidence": "string"
+          }},
+          "hair_styling_product_prohibition": {{
+            "status": "整髪料の使用禁止" | "規定なし",
+            "evidence": "string"
           }}
         }},
         "face": {{
@@ -176,6 +269,10 @@ school_rules_analysis:
           }},
           "eyebrow_modification_prohibition": {{
             "status": "眉毛加工の禁止あり" | "規定なし",
+            "evidence": "string"
+          }},
+          "tinted_lip_balm_prohibition": {{
+            "status": "色付きリップクリームの使用禁止" | "規定なし",
             "evidence": "string"
           }}
         }},
@@ -199,6 +296,10 @@ school_rules_analysis:
           "accessory_restriction": {{
             "status": "アクセサリーの制限あり" | "規定なし",
             "evidence": "string"
+          }},
+          "keychain_specification": {{
+            "status": "キーホルダーについて指定あり" | "規定なし",
+            "evidence": "string"
           }}
         }},
         "care_products": {{
@@ -209,12 +310,76 @@ school_rules_analysis:
           "specific_item_restriction": {{
             "status": "特定の用品の持ち込み制限あり" | "規定なし",
             "evidence": "string"
+          }},
+          "deodorant_prohibition": {{
+            "status": "制汗剤の利用禁止" | "規定なし",
+            "evidence": "string"
+          }},
+          "scented_products_prohibition": {{
+            "status": "香り付きケア用品の使用禁止" | "規定なし",
+            "evidence": "string"
+          }}
+        }},
+        "water_bottle": {{
+          "regulation": {{
+            "status": "規制あり" | "規定なし",
+            "evidence": "string"
+          }},
+          "content_specification": {{
+            "status": "中身について指定あり" | "規定なし",
+            "details": "string",
+            "evidence": "string"
+          }}
+        }},
+        "watch": {{
+          "analog_watch_prohibition": {{
+            "status": "腕時計の着用禁止" | "規定なし",
+            "evidence": "string"
+          }},
+          "smart_watch_prohibition": {{
+            "status": "スマートウォッチの着用禁止" | "規定なし",
+            "evidence": "string"
+          }}
+        }},
+        "smartphone": {{
+          "bringing_prohibition": {{
+            "status": "持ち込み禁止" | "規定なし",
+            "evidence": "string"
+          }},
+          "conditional_permission": {{
+            "status": "条件付きで許可" | "規定なし",
+            "conditions": "string",
+            "evidence": "string"
+          }}
+        }},
+        "comics_magazines": {{
+          "bringing_prohibition": {{
+            "status": "漫画の持ち込み禁止" | "規定なし",
+            "evidence": "string"
+          }}
+        }}
+      }},
+      "school_life": {{
+        "punctuality": {{
+          "five_minutes_before_seating": {{
+            "status": "5分前着席の規定あり" | "規定なし",
+            "evidence": "string"
+          }}
+        }},
+        "classroom_access": {{
+          "other_class_entry_prohibition": {{
+            "status": "他クラスへの立ち入り禁止" | "規定なし",
+            "evidence": "string"
           }}
         }}
       }},
       "school_life_outside": {{
         "loitering_prohibition": {{
           "status": "寄り道禁止" | "規定なし",
+          "evidence": "string"
+        }},
+        "buying_food_prohibition": {{
+          "status": "買い食い禁止" | "規定なし",
           "evidence": "string"
         }},
         "facility_entry_prohibition": {{
@@ -224,6 +389,24 @@ school_rules_analysis:
         }},
         "gathering_in_public_prohibition": {{
           "status": "公共の場での集まり禁止" | "規定なし",
+          "evidence": "string"
+        }},
+        "sleepover_prohibition": {{
+          "status": "友達同士の外泊禁止" | "規定なし",
+          "evidence": "string"
+        }},
+        "sns_regulation": {{
+          "status": "SNSについて規制あり" | "規定なし",
+          "evidence": "string"
+        }},
+        "sns_time_restriction": {{
+          "status": "21時以降の利用禁止" | "規定なし",
+          "evidence": "string"
+        }}
+      }},
+      "family_responsibilities": {{
+        "household_chores_instruction": {{
+          "status": "家の手伝いについて指示あり" | "規定なし",
           "evidence": "string"
         }}
       }}
