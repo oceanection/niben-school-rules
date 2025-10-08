@@ -342,7 +342,7 @@ class SchoolRulesAnalyzer:
                     self.logger.info(f"進捗: {self.stats['processed_pdfs']}ファイル処理完了")
                 
                 # API制限を考慮した待機
-                time.sleep(5)
+                time.sleep(30)
                 
             except Exception as e:
                 self.logger.error(f"PDF処理エラー: {pdf_info.get('file_name', 'unknown')} - {e}")
